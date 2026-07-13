@@ -262,6 +262,20 @@ async function validate(req: Extract<ToolRequest, { action: 'validate' }>): Prom
 
 async function format(req: Extract<ToolRequest, { action: 'format' }>): Promise<string> {
   if (req.lang === 'json') return JSON.stringify(JSON.parse(req.text), null, 2)
+  if (req.lang === 'js') {
+    // Prettier's browser build + its babel parser and estree printer, loaded on
+    // first JS format only — kept out of the main bundle like every other parser.
+    const [prettier, babel, estree] = await Promise.all([
+      import('prettier/standalone'),
+      import('prettier/plugins/babel'),
+      import('prettier/plugins/estree'),
+    ])
+    return prettier.format(req.text, {
+      parser: 'babel',
+      plugins: [babel, estree],
+      tabWidth: 2,
+    })
+  }
   const { format } = await import('sql-formatter')
   return format(req.text, {
     language: formatterLanguage(req.dialect) as 'sql',

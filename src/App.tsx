@@ -5,6 +5,7 @@ import { detect, DIALECT_LABELS, LANG_LABELS } from './lib/detect'
 import { Editor, type EditorHandle } from './components/Editor'
 import { GraphDialog, StructurePanel } from './components/StructurePanel'
 import { randomQuote } from './lib/quotes'
+import { supportsTransform } from './lib/capabilities'
 import { Icon, ShortcutsDialog, Spinner, useMenu, type MenuItem, type Shortcut } from './components/ui'
 
 type Theme = 'dark' | 'light'
@@ -161,9 +162,10 @@ export default function App() {
   const transform = useCallback(
     async (kind: 'format' | 'minify' | 'obfuscate') => {
       if (busy || !text.trim()) return
-      // Language guards — the buttons are disabled for these, but Ctrl+Enter and
-      // the keyboard shortcuts reach here directly and must not mangle the buffer.
-      if (kind === 'obfuscate' ? lang !== 'sql' : lang === 'js') return
+      // Language guard — the buttons are disabled for unsupported transforms, but
+      // Ctrl+Enter and the keyboard shortcuts reach here directly, so the same
+      // check must live here too or a shortcut could mangle the buffer.
+      if (!supportsTransform(kind, lang)) return
       setBusy(true)
       try {
         if (kind === 'format') {
@@ -176,7 +178,11 @@ export default function App() {
           toast(`Obfuscated ${r.identifiers} identifier${r.identifiers === 1 ? '' : 's'}, ${r.strings} string${r.strings === 1 ? '' : 's'}`)
         }
       } catch (err) {
-        toast(`${kind === 'format' ? 'Format' : kind === 'minify' ? 'Minify' : 'Obfuscate'} failed: ${err instanceof Error ? err.message : String(err)}`, 'error')
+        const label = kind === 'format' ? 'Format' : kind === 'minify' ? 'Minify' : 'Obfuscate'
+        // First line only — Prettier/parse errors carry a multi-line code frame
+        // that has no business unfurling inside a toast.
+        const detail = (err instanceof Error ? err.message : String(err)).split('\n')[0]
+        toast(`${label} failed: ${detail}`, 'error')
       } finally {
         setBusy(false)
       }
@@ -283,8 +289,8 @@ export default function App() {
   const lines = useMemo(() => (text ? text.split('\n').length : 0), [text])
   const errorLine = validation.state === 'issue' ? validation.issue.line : undefined
 
-  const canFormat = lang !== 'js'
-  const canObfuscate = lang === 'sql'
+  const canMinify = supportsTransform('minify', lang)
+  const canObfuscate = supportsTransform('obfuscate', lang)
 
   return (
     <div
@@ -312,8 +318,8 @@ export default function App() {
           <button
             className="btn btn-primary"
             onClick={() => void transform('format')}
-            disabled={busy || !canFormat}
-            title={canFormat ? 'Format (Ctrl+Enter)' : 'JavaScript: validation only'}
+            disabled={busy || !supportsTransform('format', lang)}
+            title="Format (Ctrl+Enter)"
           >
             {busy ? <Spinner size={13} /> : <Icon name="braces" size={13} />}
             Format
@@ -321,8 +327,8 @@ export default function App() {
           <button
             className="btn"
             onClick={() => void transform('minify')}
-            disabled={busy || !canFormat}
-            title={canFormat ? 'Strip comments and whitespace, one line (Ctrl+Shift+M)' : 'JavaScript: validation only'}
+            disabled={busy || !canMinify}
+            title={canMinify ? 'Strip comments and whitespace, one line (Ctrl+Shift+M)' : 'JavaScript: format only, no minify'}
           >
             <Icon name="shrink" size={13} />
             Minify
@@ -473,7 +479,7 @@ export default function App() {
           {toasts.map((t) => (
             <div
               key={t.id}
-              className={`pop pointer-events-auto max-w-96 rounded-lg border bg-panel px-3 py-2 text-[13px] shadow-[var(--shadow)] ${
+              className={`pop pointer-events-auto max-w-96 rounded-lg border bg-panel px-3 py-2 text-[13px] shadow-[var(--shadow)] line-clamp-4 break-words ${
                 t.kind === 'error' ? 'border-danger/40 text-danger' : 'border-border text-ink'
               }`}
             >
