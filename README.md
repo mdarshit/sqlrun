@@ -3,7 +3,7 @@
 **Format, minify, obfuscate and validate SQL, JSON and JavaScript — locally.**
 One editor, no server. Nothing you paste ever leaves your browser.
 
-### ▶ [Try it live — mdarshit.github.io/sqlrun](https://mdarshit.github.io/sqlrun/)
+### ▶ [Try it live — mdarshit.github.io/sift](https://mdarshit.github.io/sift/)
 
 ```
 Paste code → it validates as you type → Format / Minify / Obfuscate / Graph.
