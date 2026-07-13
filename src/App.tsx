@@ -161,6 +161,9 @@ export default function App() {
   const transform = useCallback(
     async (kind: 'format' | 'minify' | 'obfuscate') => {
       if (busy || !text.trim()) return
+      // Language guards — the buttons are disabled for these, but Ctrl+Enter and
+      // the keyboard shortcuts reach here directly and must not mangle the buffer.
+      if (kind === 'obfuscate' ? lang !== 'sql' : lang === 'js') return
       setBusy(true)
       try {
         if (kind === 'format') {
@@ -195,7 +198,7 @@ export default function App() {
         setShowHelp((v) => !v)
         return
       }
-      if (showHelp) return // the dialog handles its own keys while open
+      if (showHelp || showGraph) return // a modal is open; it owns the keyboard
       if (!(e.ctrlKey || e.metaKey) || !e.shiftKey) return
       const k = e.key.toLowerCase()
       if (k === 'm') {
@@ -214,9 +217,13 @@ export default function App() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [transform, showHelp])
+  }, [transform, showHelp, showGraph])
 
-  const isMac = useMemo(() => /Mac|iPhone|iPad/.test(navigator.platform), [])
+  const isMac = useMemo(() => {
+    const nav = navigator as Navigator & { userAgentData?: { platform?: string } }
+    const platform = nav.userAgentData?.platform || navigator.platform || navigator.userAgent
+    return /mac|iphone|ipad/i.test(platform)
+  }, [])
   const shortcuts = useMemo<Shortcut[]>(() => {
     const mod = isMac ? '⌘' : 'Ctrl'
     const shift = isMac ? '⇧' : 'Shift'

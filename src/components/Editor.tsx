@@ -24,6 +24,8 @@ const TOKEN_RE =
 const HIGHLIGHT_LIMIT = 200_000 // chars; beyond this fall back to plain text
 export const LINE_HEIGHT_EM = 1.55
 const FONT_PX = 13.5
+const EDITOR_PAD_PX = 16 // must match the .ed-layer top padding in styles.css
+const JUMP_CONTEXT_LINES = 3 // lines of breathing room kept above a jump target
 
 function highlight(text: string, lang: Language): ReactNode[] {
   if (text.length > HIGHLIGHT_LIMIT) return [text]
@@ -93,7 +95,7 @@ export const Editor = forwardRef<
       if (!ta) return
       ta.focus()
       ta.setSelectionRange(offset, offset)
-      ta.scrollTop = Math.max(0, (line - 3) * FONT_PX * LINE_HEIGHT_EM)
+      ta.scrollTop = Math.max(0, EDITOR_PAD_PX + (line - 1 - JUMP_CONTEXT_LINES) * FONT_PX * LINE_HEIGHT_EM)
       syncScroll()
       reportCursor()
     },
