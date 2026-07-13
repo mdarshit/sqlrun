@@ -1,6 +1,6 @@
 {
-  "name": "sqlrun",
-  "description": "sqlrun - a fast, minimal, offline SQL playground. SQLite in your browser, nothing else.",
+  "name": "sift",
+  "description": "Sift - a fast, minimal, offline tool to format, minify, obfuscate and validate SQL, JSON and JavaScript, entirely in your browser.",
   "private": true,
   "version": "1.0.0",
   "type": "module",

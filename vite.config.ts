@@ -14,13 +14,13 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'sqlrun',
-        short_name: 'sqlrun',
+        name: 'Sift',
+        short_name: 'Sift',
         description: 'Format, minify, obfuscate and validate SQL, JSON and JavaScript - locally, offline.',
         theme_color: '#0c0c10',
         background_color: '#0c0c10',
         display: 'standalone',
-        icons: [{ src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }],
+        icons: [{ src: 'sift-logo.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }],
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,wasm}'],

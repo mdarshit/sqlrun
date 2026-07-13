@@ -1,4 +1,4 @@
-# sqlrun
+# Sift
 
 **Format, minify, obfuscate and validate SQL, JSON and JavaScript — locally.**
 One editor, no server. Nothing you paste ever leaves your browser.

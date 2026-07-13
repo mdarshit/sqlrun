@@ -48,24 +48,24 @@ async function copyToClipboard(text: string): Promise<boolean> {
 /** Persist the buffer unless it is too large for localStorage. */
 function saveText(text: string) {
   try {
-    if (text.length < 2_000_000) localStorage.setItem('sqlrun:text', text)
+    if (text.length < 2_000_000) localStorage.setItem('sift:text', text)
   } catch {
     /* quota - the buffer simply won't survive a reload */
   }
 }
 
 function loadTheme(): Theme {
-  const stored = localStorage.getItem('sqlrun:theme') ?? ''
+  const stored = localStorage.getItem('sift:theme') ?? ''
   if (stored.includes('light')) return 'light'
   return 'dark'
 }
 
 export default function App() {
-  const [text, setText] = useState(() => localStorage.getItem('sqlrun:text') ?? '')
+  const [text, setText] = useState(() => localStorage.getItem('sift:text') ?? '')
   const [emptyQuote] = useState(randomQuote)
   const [theme, setTheme] = useState<Theme>(loadTheme)
   const [accent, setAccent] = useState<AccentId>(
-    () => (localStorage.getItem('sqlrun:accent') as AccentId) ?? 'violet',
+    () => (localStorage.getItem('sift:accent') as AccentId) ?? 'violet',
   )
   const [langOverride, setLangOverride] = useState<Language | null>(null)
   const [dialectOverride, setDialectOverride] = useState<SqlDialect | null>(null)
@@ -94,10 +94,10 @@ export default function App() {
   // Theme + accent are applied as root attributes / CSS variables.
   useEffect(() => {
     document.documentElement.dataset.theme = theme
-    localStorage.setItem('sqlrun:theme', theme)
+    localStorage.setItem('sift:theme', theme)
     const a = ACCENTS.find((x) => x.id === accent) ?? ACCENTS[0]
     document.documentElement.style.setProperty('--accent', theme === 'dark' ? a.dark : a.light)
-    localStorage.setItem('sqlrun:accent', accent)
+    localStorage.setItem('sift:accent', accent)
   }, [theme, accent])
 
   useEffect(() => {
@@ -304,17 +304,10 @@ export default function App() {
         {/* Header */}
         <header className="flex h-12 shrink-0 items-center gap-1 border-b border-border px-3">
           <div className="mr-2 flex select-none items-center gap-2">
-            <svg width="20" height="20" viewBox="0 0 32 32" aria-hidden="true" className="shrink-0">
-              <rect width="32" height="32" rx="9" fill="var(--accent)" opacity="0.16" />
-              <path
-                d="M8 20l6-10M18 10l6 10"
-                stroke="var(--accent)"
-                strokeWidth="3"
-                fill="none"
-                strokeLinecap="round"
-              />
-            </svg>
-            <h1 className="font-mono text-[13px] font-semibold tracking-tight">sqlrun</h1>
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-white">
+              <img src={`${import.meta.env.BASE_URL}sift-logo.svg`} alt="" width="16" height="16" />
+            </span>
+            <h1 className="font-mono text-[13px] font-semibold tracking-tight">Sift</h1>
           </div>
           <button
             className="btn btn-primary"

@@ -1,6 +1,6 @@
-# Deploying sqlrun
+# Deploying Sift
 
-sqlrun compiles to a **fully static site** — no server code, no database, no environment
+Sift compiles to a **fully static site** — no server code, no database, no environment
 secrets. Deployment means: build once, upload the `dist/` folder to any static host.
 Every option below has a free tier that comfortably fits this app.
 
@@ -43,7 +43,7 @@ Fast global CDN, unlimited bandwidth on the free tier, automatic HTTPS.
 
 ```bash
 npm run build
-npx wrangler pages deploy dist --project-name sqlrun
+npx wrangler pages deploy dist --project-name sift
 ```
 
 ## Option 2 — GitHub Pages
