@@ -1,0 +1,471 @@
+@import 'tailwindcss';
+
+/* ------------------------------------------------------------------ */
+/* Tokens. Flat, crisp, zed-like. The accent is set from JS (picker).  */
+/* ------------------------------------------------------------------ */
+
+:root,
+:root[data-theme='dark'] {
+  --page: #0c0c10;
+  --bg: #131318;
+  --panel: #131318;
+  --panel2: #1b1b22;
+  --hover: #23232c;
+  --border: #26262e;
+  --ink: #e6e6ea;
+  --dim: #9b9ba4;
+  --faint: #74747e;
+  --accent: #8f7ff7; /* overridden by the accent picker */
+  --accent-ink: #101014;
+  --danger: #e5636a;
+  --danger-soft: rgba(229, 99, 106, 0.12);
+  --ok: #55b36b;
+  --warn: #d9a13c;
+  /* Top-edge highlight: a 1px line of light catching the raised surface. */
+  --edge: rgba(255, 255, 255, 0.06);
+  /* Layered elevation: contact shadow + key + ambient, plus the edge highlight. */
+  --shadow:
+    inset 0 1px 0 0 var(--edge),
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 12px 28px -8px rgba(0, 0, 0, 0.55),
+    0 28px 56px -20px rgba(0, 0, 0, 0.5);
+  --tok-str: #e8935c;
+  --tok-num: #7dcfe8;
+  --tok-com: #7f7f8a;
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  --page: #eef0f7;
+  --bg: #ffffff;
+  --panel: #ffffff;
+  --panel2: #f4f4f9;
+  --hover: #ebebf2;
+  --border: #e5e5ee;
+  --ink: #1f1f28;
+  --dim: #6b6b78;
+  --faint: #7c7c8a;
+  --accent: #6d4fe2;
+  --accent-ink: #ffffff;
+  --danger: #cf3f46;
+  --danger-soft: rgba(207, 63, 70, 0.09);
+  --ok: #22863a;
+  --warn: #a97913;
+  --edge: rgba(255, 255, 255, 0.8);
+  --shadow:
+    inset 0 1px 0 0 var(--edge),
+    0 1px 2px rgba(80, 70, 120, 0.06),
+    0 12px 28px -8px rgba(80, 70, 120, 0.14),
+    0 24px 48px -16px rgba(80, 70, 120, 0.1);
+  --tok-str: #c2570e;
+  --tok-num: #0e7490;
+  --tok-com: #6c6c78;
+  color-scheme: light;
+}
+
+/* Derived accent tints - follow the picker automatically. */
+:root {
+  --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent);
+  --sel: color-mix(in srgb, var(--accent) 26%, transparent);
+  --tok-kw: var(--accent);
+}
+
+/* Page backgrounds: faint grid in dark (zed-style), soft tints in light. */
+html[data-theme='dark'] body {
+  background-color: var(--page);
+  background-image:
+    radial-gradient(1100px 720px at 84% -18%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 55%),
+    radial-gradient(760px 520px at -5% 108%, color-mix(in srgb, var(--accent) 5%, transparent), transparent 60%),
+    linear-gradient(rgba(255, 255, 255, 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.028) 1px, transparent 1px);
+  background-size: auto, auto, 28px 28px, 28px 28px;
+}
+
+html[data-theme='light'] body {
+  background:
+    radial-gradient(900px 600px at 88% -10%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 60%),
+    radial-gradient(800px 520px at 0% 105%, rgba(236, 72, 153, 0.07), transparent 60%),
+    var(--page);
+}
+
+@theme inline {
+  --color-page: var(--page);
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-panel2: var(--panel2);
+  --color-hover: var(--hover);
+  --color-border: var(--border);
+  --color-ink: var(--ink);
+  --color-dim: var(--dim);
+  --color-faint: var(--faint);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --font-mono: ui-monospace, 'Cascadia Code', 'JetBrains Mono', Consolas, 'Courier New', monospace;
+}
+
+/* ------------------------------------------------------------------ */
+/* Base                                                                */
+/* ------------------------------------------------------------------ */
+
+html,
+body,
+#root {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  color: var(--ink);
+  font-family: system-ui, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+::selection {
+  background: var(--sel);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--faint) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--faint);
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Shared pieces                                                       */
+/* ------------------------------------------------------------------ */
+
+.btn {
+  @apply inline-flex items-center gap-1.5 rounded-lg px-3 h-8 text-[13px] font-medium select-none whitespace-nowrap;
+  color: var(--dim);
+  transition: background 0.12s ease, color 0.12s ease, transform 0.08s ease;
+}
+.btn:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--accent) 45%, transparent),
+    0 4px 12px -2px color-mix(in srgb, var(--accent) 35%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+.btn-primary:hover {
+  filter: brightness(1.06);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.btn:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.icon-btn {
+  @apply inline-flex items-center justify-center rounded-lg h-8 w-8 shrink-0;
+  color: var(--dim);
+  transition: background 0.12s ease, color 0.12s ease, transform 0.08s ease;
+}
+.icon-btn:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+.icon-btn:active {
+  transform: scale(0.92);
+}
+
+/* Structure panel: tabs, outline tree rows. */
+.tab {
+  @apply inline-flex h-6 items-center rounded-md px-2 font-mono text-[11px] select-none;
+  color: var(--dim);
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.tab:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+.tab[aria-selected='true'] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.tree-chevron {
+  @apply inline-flex h-5 w-5 shrink-0 items-center justify-center rounded;
+  color: var(--faint);
+}
+.tree-chevron:hover {
+  color: var(--ink);
+}
+.tree-chevron svg {
+  transition: transform 0.1s ease;
+}
+
+.tree-row {
+  @apply flex h-7 min-w-0 flex-1 items-center gap-2 rounded-md px-2 text-left font-mono text-[12px];
+  color: var(--dim);
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.tree-row:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+
+.tree-badge {
+  @apply inline-flex h-4.5 shrink-0 items-center rounded-full px-1.5 text-[10px] tabular-nums;
+  background: var(--panel2);
+  color: var(--faint);
+}
+
+/* Keycap in the shortcuts dialog. */
+.kbd {
+  @apply inline-flex h-6 min-w-6 items-center justify-center rounded-md border px-1.5 font-mono text-[11px];
+  border-color: var(--border);
+  background: var(--panel2);
+  color: var(--dim);
+}
+
+/* Accent picker swatch. The button is a 24px tap target; the dot inside is 16px. */
+.swatch {
+  @apply inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full;
+}
+.swatch > span {
+  @apply h-4 w-4 rounded-full;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.swatch:hover > span {
+  transform: scale(1.15);
+}
+.swatch[aria-pressed='true'] > span {
+  box-shadow:
+    0 0 0 2px var(--panel),
+    0 0 0 4px var(--accent);
+}
+
+/* ------------------------------------------------------------------ */
+/* Editor: gutter + textarea over a highlighted mirror.                */
+/* Metrics of gutter, mirror and textarea MUST match exactly.          */
+/* ------------------------------------------------------------------ */
+
+.ed-layer {
+  @apply absolute inset-0 m-0 whitespace-pre font-mono;
+  font-size: 13.5px;
+  line-height: 1.55;
+  padding: 16px;
+  tab-size: 2;
+  border: 0;
+  overflow: auto;
+}
+.ed-input {
+  background: transparent;
+  color: transparent;
+  caret-color: var(--accent);
+  resize: none;
+  outline: none;
+  z-index: 1;
+}
+/* The textarea's text is transparent; without this the placeholder is too. */
+.ed-input::placeholder {
+  color: var(--dim);
+  opacity: 1;
+}
+.ed-mirror {
+  pointer-events: none;
+  overflow: hidden;
+  position: absolute; /* containing block for the error-line marker */
+}
+.ed-gutter {
+  @apply m-0 shrink-0 select-none whitespace-pre text-right font-mono;
+  font-size: 13.5px;
+  line-height: 1.55;
+  padding: 16px 12px 16px 0;
+  overflow: hidden;
+  color: var(--faint);
+  border-right: 1px solid var(--border);
+}
+.ed-errline {
+  position: absolute;
+  left: 0;
+  width: 9999px; /* absolute children anchor to the unscrolled padding box */
+  height: 1.55em;
+  background: var(--danger-soft);
+  box-shadow: inset 2px 0 0 var(--danger);
+  pointer-events: none;
+}
+/* Empty-buffer state: a centered quote, behind the (transparent) textarea so a
+   click still lands in the editor. Vanishes the moment anything is typed. */
+.ed-empty {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 32px;
+  pointer-events: none;
+}
+.ed-empty-inner {
+  max-width: 52ch;
+  text-align: center;
+}
+.ed-quote {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--dim);
+  text-wrap: balance;
+}
+.ed-quote-by {
+  margin-top: 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--faint);
+}
+.ed-quote-by::before {
+  content: '— ';
+}
+.ed-quote-rule {
+  display: block;
+  width: 28px;
+  height: 2px;
+  margin: 22px auto 0;
+  border-radius: 1px;
+  background: var(--accent);
+  opacity: 0.55;
+}
+.ed-quote-hint {
+  margin-top: 14px;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  color: var(--faint);
+}
+
+.tok-kw {
+  color: var(--tok-kw);
+  font-weight: 600;
+}
+.tok-str {
+  color: var(--tok-str);
+}
+.tok-num {
+  color: var(--tok-num);
+}
+.tok-com {
+  color: var(--tok-com);
+  font-style: italic;
+}
+
+@keyframes fadein {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.pop {
+  animation: fadein 0.12s ease;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+
+/* The "checking" status dot breathes while validation is in flight. */
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.pulse {
+  animation: pulse 1.1s ease-in-out infinite;
+}
+
+/* Modal: backdrop fades, panel rises a hair. Felt, not seen. */
+@keyframes overlayin {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes dialogin {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.overlay {
+  background: rgba(0, 0, 0, 0.5);
+  animation: overlayin 0.12s ease;
+}
+.dialog {
+  animation: dialogin 0.14s ease;
+}
+
+/* Structure panel entrance. */
+@keyframes slidein {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.panel-slide {
+  animation: slidein 0.14s ease;
+}
