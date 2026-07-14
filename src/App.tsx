@@ -292,6 +292,14 @@ export default function App() {
   const canMinify = supportsTransform('minify', lang)
   const canObfuscate = supportsTransform('obfuscate', lang)
 
+  // Header controls that don't fit a phone screen, offered via the ⋯ menu.
+  const overflowItems = (): MenuItem[] => [
+    ...(lang === 'sql' ? [{ label: 'Query graph', onClick: () => setShowGraph(true) }] : []),
+    { label: 'Copy buffer', onClick: () => void copyAll() },
+    { label: (showStructure ? '● ' : '  ') + 'Outline panel', onClick: () => setShowStructure((v) => !v) },
+    { label: theme === 'dark' ? 'Light theme' : 'Dark theme', onClick: () => setTheme(theme === 'dark' ? 'light' : 'dark') },
+  ]
+
   return (
     <div
       className="flex h-full flex-col p-3 md:p-5"
@@ -313,7 +321,7 @@ export default function App() {
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-white">
               <img src={`${import.meta.env.BASE_URL}sift-logo.svg`} alt="" width="16" height="16" />
             </span>
-            <h1 className="font-mono text-[13px] font-semibold tracking-tight">Sift</h1>
+            <h1 className="font-mono text-[13px] font-semibold tracking-tight sr-only sm:not-sr-only">Sift</h1>
           </div>
           <button
             className="btn btn-primary"
@@ -331,7 +339,7 @@ export default function App() {
             title={canMinify ? 'Strip comments and whitespace, one line (Ctrl+Shift+M)' : 'JavaScript: format only, no minify'}
           >
             <Icon name="shrink" size={13} />
-            Minify
+            <span className="hidden sm:inline">Minify</span>
           </button>
           <button
             className="btn"
@@ -340,61 +348,81 @@ export default function App() {
             title={canObfuscate ? 'Rename identifiers, mask strings - share a query without leaking schema or data (Ctrl+Shift+O)' : 'SQL only'}
           >
             <Icon name="mask" size={13} />
-            Obfuscate
+            <span className="hidden sm:inline">Obfuscate</span>
           </button>
-          <button
-            className="btn"
-            onClick={() => setShowGraph(true)}
-            disabled={lang !== 'sql'}
-            title={lang === 'sql' ? 'Table/CTE dependency graph (Ctrl+Shift+G)' : 'SQL only'}
-          >
-            <Icon name="graph" size={13} />
-            Graph
-          </button>
-          <div className="flex-1" />
-          <div className="hidden items-center gap-0.5 sm:flex" role="group" aria-label="Accent color">
-            {ACCENTS.map((a) => (
-              <button
-                key={a.id}
-                className="swatch"
-                aria-pressed={accent === a.id}
-                aria-label={`${a.id} accent`}
-                title={a.id}
-                onClick={() => setAccent(a.id)}
-              >
-                <span style={{ background: theme === 'dark' ? a.dark : a.light }} />
-              </button>
-            ))}
+          {/* Graph stays with the transforms on desktop; on phones it moves into
+              the ⋯ menu. Wrapped in a plain element because the unlayered .btn
+              display rule would otherwise beat the `hidden` utility. */}
+          <div className="hidden shrink-0 sm:flex">
+            <button
+              className="btn"
+              onClick={() => setShowGraph(true)}
+              disabled={lang !== 'sql'}
+              title={lang === 'sql' ? 'Table/CTE dependency graph (Ctrl+Shift+G)' : 'SQL only'}
+            >
+              <Icon name="graph" size={13} />
+              Graph
+            </button>
           </div>
-          <div className="mx-1 h-5 w-px bg-border" />
-          <button className="icon-btn" onClick={() => void copyAll()} title="Copy buffer" aria-label="Copy buffer">
-            <Icon name="copy" size={14} />
-          </button>
-          <button
-            className="icon-btn"
-            onClick={() => setShowStructure((v) => !v)}
-            title="Toggle outline panel"
-            aria-label="Toggle structure panel"
-            aria-pressed={showStructure}
-          >
-            <Icon name="structure" size={14} />
-          </button>
-          <button
-            className="icon-btn"
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            title={theme === 'dark' ? 'Switch to light' : 'Switch to dark'}
-            aria-label="Toggle theme"
-          >
-            <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={14} />
-          </button>
-          <button
-            className="icon-btn"
-            onClick={() => setShowHelp(true)}
-            title="Keyboard shortcuts (?)"
-            aria-label="Keyboard shortcuts"
-          >
-            <Icon name="keyboard" size={15} />
-          </button>
+          <div className="flex-1" />
+          {/* Utility cluster: icons from sm+, accent swatches only once there's
+              real room for them (lg+); all collapse into the ⋯ menu on phones. */}
+          <div className="hidden items-center gap-1 sm:flex">
+            <div className="hidden items-center gap-0.5 lg:flex" role="group" aria-label="Accent color">
+              {ACCENTS.map((a) => (
+                <button
+                  key={a.id}
+                  className="swatch"
+                  aria-pressed={accent === a.id}
+                  aria-label={`${a.id} accent`}
+                  title={a.id}
+                  onClick={() => setAccent(a.id)}
+                >
+                  <span style={{ background: theme === 'dark' ? a.dark : a.light }} />
+                </button>
+              ))}
+            </div>
+            <div className="mx-1 hidden h-5 w-px bg-border lg:block" />
+            <button className="icon-btn" onClick={() => void copyAll()} title="Copy buffer" aria-label="Copy buffer">
+              <Icon name="copy" size={14} />
+            </button>
+            <button
+              className="icon-btn"
+              onClick={() => setShowStructure((v) => !v)}
+              title="Toggle outline panel"
+              aria-label="Toggle structure panel"
+              aria-pressed={showStructure}
+            >
+              <Icon name="structure" size={14} />
+            </button>
+            <button
+              className="icon-btn"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              title={theme === 'dark' ? 'Switch to light' : 'Switch to dark'}
+              aria-label="Toggle theme"
+            >
+              <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={14} />
+            </button>
+            <button
+              className="icon-btn"
+              onClick={() => setShowHelp(true)}
+              title="Keyboard shortcuts (?)"
+              aria-label="Keyboard shortcuts"
+            >
+              <Icon name="keyboard" size={15} />
+            </button>
+          </div>
+          {/* Mobile-only overflow: the controls that don't fit a phone header. */}
+          <div className="flex sm:hidden">
+            <button
+              className="icon-btn"
+              onClick={(e) => menu.openFor(e, overflowItems())}
+              title="More actions"
+              aria-label="More actions"
+            >
+              <Icon name="more" size={16} />
+            </button>
+          </div>
         </header>
 
         {/* Editor + structure panel */}
