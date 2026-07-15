@@ -62,6 +62,11 @@ export interface AnalyzeResult {
   truncated: boolean
 }
 
+export interface ObfuscationMapping {
+  identifiers: Record<string, string>
+  strings: Record<string, string>
+}
+
 // ---------------------------------------------------------------------------
 // Worker protocol
 // ---------------------------------------------------------------------------
@@ -80,6 +85,7 @@ export type ToolResponse =
       result?: string
       validate?: ValidateResult
       counts?: { identifiers: number; strings: number }
+      mapping?: ObfuscationMapping
       analyze?: AnalyzeResult
     }
   | { id: number; ok: false; error: string }

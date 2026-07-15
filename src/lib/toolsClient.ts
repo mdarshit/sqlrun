@@ -1,5 +1,13 @@
 /** Promise RPC to the tools worker. */
-import type { AnalyzeResult, Language, SqlDialect, ToolRequest, ToolResponse, ValidateResult } from '../types'
+import type {
+  AnalyzeResult,
+  Language,
+  ObfuscationMapping,
+  SqlDialect,
+  ToolRequest,
+  ToolResponse,
+  ValidateResult,
+} from '../types'
 
 type Payload = ToolRequest extends infer R ? (R extends ToolRequest ? Omit<R, 'id'> : never) : never
 
@@ -55,10 +63,17 @@ class ToolsClient {
     return r.analyze!
   }
 
-  async obfuscate(text: string): Promise<{ result: string; identifiers: number; strings: number }> {
+  async obfuscate(
+    text: string,
+  ): Promise<{ result: string; identifiers: number; strings: number; mapping: ObfuscationMapping }> {
     const r = await this.request({ action: 'obfuscate', text })
     if (!r.ok) throw new Error(r.error)
-    return { result: r.result!, identifiers: r.counts!.identifiers, strings: r.counts!.strings }
+    return {
+      result: r.result!,
+      identifiers: r.counts!.identifiers,
+      strings: r.counts!.strings,
+      mapping: r.mapping!,
+    }
   }
 }
 

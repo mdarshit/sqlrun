@@ -3,6 +3,7 @@
  * Token-based, so string literals and quoted identifiers are never corrupted.
  */
 import { FUNCTIONS, KEYWORDS } from './sqlTokens'
+import type { ObfuscationMapping } from '../types'
 
 export type TokenType = 'comment' | 'string' | 'qident' | 'param' | 'word' | 'number' | 'ws' | 'punct'
 
@@ -78,6 +79,7 @@ export interface ObfuscateResult {
   sql: string
   identifiers: number
   strings: number
+  mapping: ObfuscationMapping
 }
 
 /**
@@ -89,6 +91,8 @@ export interface ObfuscateResult {
 export function obfuscateSql(sql: string): ObfuscateResult {
   const idMap = new Map<string, string>()
   const strMap = new Map<string, string>()
+  const identifierMapping: Record<string, string> = {}
+  const stringMapping: Record<string, string> = {}
 
   const mapIdent = (name: string): string => {
     const key = name.toLowerCase()
@@ -96,6 +100,7 @@ export function obfuscateSql(sql: string): ObfuscateResult {
     if (!mapped) {
       mapped = `t${idMap.size + 1}`
       idMap.set(key, mapped)
+      identifierMapping[mapped] = name
     }
     return mapped
   }
@@ -113,11 +118,17 @@ export function obfuscateSql(sql: string): ObfuscateResult {
       if (!mapped) {
         mapped = `'s${strMap.size + 1}'`
         strMap.set(t.text, mapped)
+        stringMapping[mapped.slice(1, -1)] = t.text
       }
       return mapped
     }
     return t.text
   })
 
-  return { sql: out.join(''), identifiers: idMap.size, strings: strMap.size }
+  return {
+    sql: out.join(''),
+    identifiers: idMap.size,
+    strings: strMap.size,
+    mapping: { identifiers: identifierMapping, strings: stringMapping },
+  }
 }

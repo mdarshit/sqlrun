@@ -304,7 +304,13 @@ self.onmessage = async (e: MessageEvent<ToolRequest>) => {
         break
       case 'obfuscate': {
         const r = obfuscateSql(req.text)
-        post({ id: req.id, ok: true, result: r.sql, counts: { identifiers: r.identifiers, strings: r.strings } })
+        post({
+          id: req.id,
+          ok: true,
+          result: r.sql,
+          counts: { identifiers: r.identifiers, strings: r.strings },
+          mapping: r.mapping,
+        })
         break
       }
       case 'analyze':

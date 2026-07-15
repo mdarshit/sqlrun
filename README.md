@@ -14,7 +14,7 @@ Paste code → it validates as you type → Format / Minify / Obfuscate / Graph.
 | | SQL | JSON | JavaScript |
 | --- | :-: | :-: | :-: |
 | Live syntax validation (line + column, click to jump) | ✅ | ✅ | ✅ |
-| Format | ✅ | ✅ | — |
+| Format | ✅ | ✅ | ✅ |
 | Minify (comments + whitespace stripped, one line) | ✅ | ✅ | — |
 | Obfuscate (rename identifiers, mask strings) | ✅ | — | — |
 
@@ -29,7 +29,11 @@ Paste code → it validates as you type → Format / Minify / Obfuscate / Graph.
 - **Obfuscation** consistently renames every table/column/alias (`t1, t2, …`) and masks
   string literals (`'s1', …`) while keywords, functions, numbers, parameters and
   structure survive — share a query's shape without leaking schema or data.
-  Dollar-quoted bodies (`$fn$…$fn$`) are treated as literals, never corrupted.
+  Dollar-quoted bodies (`$fn$…$fn$`) are treated as literals, never corrupted. Download
+  the private decoder map when you need to match `t1` / `s1` back to the originals.
+- **Transforms are reversible**: Format, Minify and Obfuscate keep a three-step local
+  history. Use the toast's **Undo** action or press `Ctrl/⌘+Z` immediately after a
+  transform; once you resume editing, the shortcut leaves the editor alone.
 - **Scale**: a 30,000-line / 1 MB script validates in well under a second and reports
   an error at line 15,000 precisely. Formatting the same buffer takes a few seconds —
   in a worker, so the page never freezes. Syntax highlighting bows out above 200k
@@ -60,6 +64,7 @@ Paste code → it validates as you type → Format / Minify / Obfuscate / Graph.
 | `Ctrl+Shift+O` | Obfuscate |
 | `Ctrl+Shift+G` | Query graph |
 | `Ctrl+Shift+L` | Toggle light / dark |
+| `Ctrl+Z` | Undo the latest transform (while its output is unchanged) |
 | `Ctrl+/` | Toggle line comment (`--` or `//` by language) |
 | `Tab` | Indent |
 | `?` | Full keyboard-shortcut reference |

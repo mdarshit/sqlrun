@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { AnalyzeResult, Issue, Language, SqlDialect, ValidationDepth } from './types'
+import type { AnalyzeResult, Issue, Language, ObfuscationMapping, SqlDialect, ValidationDepth } from './types'
 import { tools } from './lib/toolsClient'
 import { detect, DIALECT_LABELS, LANG_LABELS } from './lib/detect'
 import { Editor, type EditorHandle } from './components/Editor'
@@ -34,8 +34,21 @@ interface Toast {
   id: number
   kind: 'info' | 'error'
   text: string
+  actions?: ToastAction[]
+}
+
+interface ToastAction {
+  label: string
+  onClick: () => void
+}
+
+interface TransformSnapshot {
+  id: number
+  before: string
+  after: string
 }
 let toastSeq = 1
+let transformSeq = 1
 
 async function copyToClipboard(text: string): Promise<boolean> {
   try {
@@ -44,6 +57,25 @@ async function copyToClipboard(text: string): Promise<boolean> {
   } catch {
     return false
   }
+}
+
+function downloadObfuscationMap(mapping: ObfuscationMapping) {
+  const payload = {
+    format: 'sift-obfuscation-map',
+    version: 1,
+    createdAt: new Date().toISOString(),
+    warning: 'Keep this file private: it contains the original identifiers and string literals.',
+    ...mapping,
+  }
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+  const href = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = href
+  link.download = `sift-obfuscation-map-${payload.createdAt.replace(/[:.]/g, '-')}.json`
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  window.setTimeout(() => URL.revokeObjectURL(href), 1000)
 }
 
 /** Persist the buffer unless it is too large for localStorage. */
@@ -80,16 +112,64 @@ export default function App() {
   const [structure, setStructure] = useState<AnalyzeResult | null>(null)
   const [analyzing, setAnalyzing] = useState(false)
   const editorRef = useRef<EditorHandle>(null)
+  const textRef = useRef(text)
+  const transformHistory = useRef<TransformSnapshot[]>([])
   const menu = useMenu()
+
+  textRef.current = text
 
   const detected = useMemo(() => detect(text), [text])
   const lang: Language = langOverride ?? detected.lang
   const dialect: SqlDialect = lang === 'sql' ? (dialectOverride ?? detected.dialect) : 'sql'
 
-  const toast = useCallback((msg: string, kind: Toast['kind'] = 'info') => {
+  const toast = useCallback((msg: string, kind: Toast['kind'] = 'info', actions?: ToastAction[]) => {
     const id = toastSeq++
-    setToasts((t) => [...t, { id, kind, text: msg }])
-    window.setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), kind === 'error' ? 5000 : 2600)
+    setToasts((t) => [...t, { id, kind, text: msg, actions }])
+    const lifetime = actions?.length ? 15_000 : kind === 'error' ? 5000 : 2600
+    window.setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), lifetime)
+  }, [])
+
+  const rememberTransform = useCallback((before: string, after: string): TransformSnapshot | null => {
+    if (before === after) return null
+    const snapshot = { id: transformSeq++, before, after }
+    transformHistory.current = [...transformHistory.current, snapshot].slice(-3)
+    textRef.current = after
+    setText(after)
+    return snapshot
+  }, [])
+
+  const undoTransform = useCallback(
+    (snapshotId?: number): boolean => {
+      const history = transformHistory.current
+      const index = snapshotId == null ? history.length - 1 : history.findIndex((x) => x.id === snapshotId)
+      if (index < 0) return false
+      const snapshot = history[index]
+      if (textRef.current !== snapshot.after) return false
+
+      transformHistory.current = history.slice(0, index)
+      textRef.current = snapshot.before
+      setText(snapshot.before)
+      toast('Transform undone')
+      window.requestAnimationFrame(() => editorRef.current?.focus())
+      return true
+    },
+    [toast],
+  )
+
+  const undoAction = useCallback(
+    (snapshot: TransformSnapshot): ToastAction => ({
+      label: 'Undo',
+      onClick: () => {
+        if (!undoTransform(snapshot.id)) toast('Undo unavailable — the buffer changed', 'error')
+      },
+    }),
+    [toast, undoTransform],
+  )
+
+  const handleEditorChange = useCallback((next: string) => {
+    transformHistory.current = []
+    textRef.current = next
+    setText(next)
   }, [])
 
   // Theme + accent are applied as root attributes / CSS variables.
@@ -169,13 +249,24 @@ export default function App() {
       setBusy(true)
       try {
         if (kind === 'format') {
-          setText(await tools.format(lang, dialect, text))
+          const snapshot = rememberTransform(text, await tools.format(lang, dialect, text))
+          toast(snapshot ? 'Formatted' : 'Already formatted', 'info', snapshot ? [undoAction(snapshot)] : undefined)
         } else if (kind === 'minify') {
-          setText(await tools.minify(lang, text))
+          const snapshot = rememberTransform(text, await tools.minify(lang, text))
+          toast(snapshot ? 'Minified' : 'Already minified', 'info', snapshot ? [undoAction(snapshot)] : undefined)
         } else {
           const r = await tools.obfuscate(text)
-          setText(r.result)
-          toast(`Obfuscated ${r.identifiers} identifier${r.identifiers === 1 ? '' : 's'}, ${r.strings} string${r.strings === 1 ? '' : 's'}`)
+          const snapshot = rememberTransform(text, r.result)
+          const actions: ToastAction[] = []
+          if (snapshot) actions.push(undoAction(snapshot))
+          if (r.identifiers + r.strings > 0) {
+            actions.push({ label: 'Download map', onClick: () => downloadObfuscationMap(r.mapping) })
+          }
+          toast(
+            `Obfuscated ${r.identifiers} identifier${r.identifiers === 1 ? '' : 's'}, ${r.strings} string${r.strings === 1 ? '' : 's'}`,
+            'info',
+            actions,
+          )
         }
       } catch (err) {
         const label = kind === 'format' ? 'Format' : kind === 'minify' ? 'Minify' : 'Obfuscate'
@@ -187,7 +278,7 @@ export default function App() {
         setBusy(false)
       }
     },
-    [busy, text, lang, dialect, toast],
+    [busy, text, lang, dialect, rememberTransform, toast, undoAction],
   )
 
   const copyAll = useCallback(async () => {
@@ -205,6 +296,16 @@ export default function App() {
         return
       }
       if (showHelp || showGraph) return // a modal is open; it owns the keyboard
+      if (
+        el instanceof HTMLTextAreaElement &&
+        (e.ctrlKey || e.metaKey) &&
+        !e.shiftKey &&
+        e.key.toLowerCase() === 'z' &&
+        undoTransform()
+      ) {
+        e.preventDefault()
+        return
+      }
       if (!(e.ctrlKey || e.metaKey) || !e.shiftKey) return
       const k = e.key.toLowerCase()
       if (k === 'm') {
@@ -223,7 +324,7 @@ export default function App() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [transform, showHelp, showGraph])
+  }, [transform, showHelp, showGraph, undoTransform])
 
   const isMac = useMemo(() => {
     const nav = navigator as Navigator & { userAgentData?: { platform?: string } }
@@ -241,6 +342,7 @@ export default function App() {
       { keys: ['Tab'], label: 'Indent' },
       { keys: [mod, shift, 'G'], label: 'Query graph' },
       { keys: [mod, shift, 'L'], label: 'Toggle theme' },
+      { keys: [mod, 'Z'], label: 'Undo latest transform' },
       { keys: ['?'], label: 'This help' },
     ]
   }, [isMac])
@@ -251,11 +353,11 @@ export default function App() {
         toast('File too large (8 MB max)', 'error')
         return
       }
-      setText(await file.text())
+      handleEditorChange(await file.text())
       setLangOverride(null)
       setDialectOverride(null)
     },
-    [toast],
+    [handleEditorChange, toast],
   )
 
   const langMenuItems = (): MenuItem[] => {
@@ -431,7 +533,7 @@ export default function App() {
             <Editor
               ref={editorRef}
               value={text}
-              onChange={setText}
+              onChange={handleEditorChange}
               onAction={() => void transform('format')}
               language={lang}
               errorLine={errorLine}
@@ -503,15 +605,36 @@ export default function App() {
 
       {/* Toasts */}
       {toasts.length > 0 && (
-        <div className="pointer-events-none fixed bottom-10 right-5 z-50 flex flex-col gap-2" role="status" aria-live="polite">
+        <div
+          className="pointer-events-none fixed bottom-10 left-3 right-3 z-50 flex flex-col items-end gap-2 sm:left-auto sm:right-5"
+          role="status"
+          aria-live="polite"
+        >
           {toasts.map((t) => (
             <div
               key={t.id}
-              className={`pop pointer-events-auto max-w-96 rounded-lg border bg-panel px-3 py-2 text-[13px] shadow-[var(--shadow)] line-clamp-4 break-words ${
+              className={`pop pointer-events-auto flex w-full max-w-96 flex-col gap-2 rounded-lg border bg-panel px-3 py-2 text-[13px] shadow-[var(--shadow)] sm:w-auto sm:flex-row sm:items-center ${
                 t.kind === 'error' ? 'border-danger/40 text-danger' : 'border-border text-ink'
               }`}
             >
-              {t.text}
+              <span className="line-clamp-4 break-words">{t.text}</span>
+              {t.actions && t.actions.length > 0 && (
+                <span className="inline-flex gap-1.5 self-end sm:ml-3">
+                  {t.actions.map((action) => (
+                    <button
+                      key={action.label}
+                      type="button"
+                      className="min-h-10 rounded-md border border-border bg-panel2 px-2 py-1 text-[12px] font-medium text-ink transition-colors hover:bg-hover sm:min-h-0"
+                      onClick={() => {
+                        setToasts((items) => items.filter((item) => item.id !== t.id))
+                        action.onClick()
+                      }}
+                    >
+                      {action.label}
+                    </button>
+                  ))}
+                </span>
+              )}
             </div>
           ))}
         </div>

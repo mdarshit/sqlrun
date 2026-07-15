@@ -59,6 +59,23 @@ describe('obfuscateSql', () => {
     expect(sql).toBe('SELECT t1 FROM t1;')
   })
 
+  it('returns a decoder map keyed by generated identifiers and strings', () => {
+    const { mapping } = obfuscateSql(
+      "SELECT Customers.Name FROM Customers WHERE Customers.City = 'Berlin' OR Customers.City = 'Berlin';",
+    )
+
+    expect(mapping).toEqual({
+      identifiers: {
+        t1: 'Customers',
+        t2: 'Name',
+        t3: 'City',
+      },
+      strings: {
+        s1: "'Berlin'",
+      },
+    })
+  })
+
   it('treats dollar-quoted bodies as single string literals', () => {
     const src = 'CREATE FUNCTION f() RETURNS text AS $fn$ SELECT secret FROM hidden $fn$ LANGUAGE sql;'
     const { sql, strings } = obfuscateSql(src)
